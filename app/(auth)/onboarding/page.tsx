@@ -5,16 +5,23 @@ export default async  function Onboarding() {
   const user = await currentUser();
   if (!user) return null; // to avoid typescript warnings
 
-  const userInfo = {};
+  const userInfo = {
+    _id: user.id,
+    username: user.username ,
+    name: user.firstName ,
+    bio:  "bio" ,
+    image: user.imageUrl ,
+  };
+
   
 
   const userData = {
-    id: user.id,
+    id:user.id,
     objectId: userInfo?._id,
     username:  userInfo?.username || user.username,
-    name:  userInfo?.name || "",
-    bio:  userInfo?.bio || "",
-    image:userInfo?.image || user.imageUrl,
+    name: userInfo?.name || user.firstName,
+    bio: userInfo?.bio || "",
+    image: userInfo?.image || user.imageUrl,
   };
   return (
     <main className="mx-auto flex max-w-3xl flex-col justify-start px-10 py-20">
@@ -23,7 +30,14 @@ export default async  function Onboarding() {
         Complet your profile know to use Threads{" "}
       </p>
       <section className="mt-9 bg-dark-2 p-10">
-        <AccountProfile user= {userData} btnTitle="Continue"/>  
+        <AccountProfile user= {{
+          id:userData.id,
+          objectId: userData.objectId,
+          username: userData.username ?? "",
+          name: userData.name ?? "",
+          bio: userData.bio,
+          image: userData.image,
+        }} btnTitle="Continue"/>  
       </section>
     </main>
   );

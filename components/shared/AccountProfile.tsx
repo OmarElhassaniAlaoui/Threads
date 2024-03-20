@@ -6,6 +6,8 @@ import { UserValidation } from "@/lib/validations/user";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import Image from "next/image";
+import { useState } from "react"; 
+import { useUploadThing } from "@/lib/uploadthing";
 
 import {
   Form,
@@ -18,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
+import { isBase64Image } from "@/lib/utils";
 interface Props {
   user: {
     id: string;
@@ -31,25 +34,50 @@ interface Props {
 }
 
 export default function AccountProfile({ user, btnTitle }: Props) {
+  const [file, setFiles] = useState<File[]>([]);
+  const { startUpload } = useUploadThing("media");
   const form = useForm({
     resolver: zodResolver(UserValidation),
     defaultValues: {
       profile_photo: user?.image || "",
-      name:user?.name || "",
+      name: user?.name || "",
       username: user?.username || "",
       bio: user?.bio || "",
     },
-  });
+  }); 
+
+  // handle image change 
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     onChange: (value: string) => void
   ) => {
     e.preventDefault();
-  };
-  function onSubmit(values: z.infer<typeof UserValidation>) {
-    // Do something with the form values.
-    // ✅ This will be type-safe and validated.
-    console.log(values);
+    const fileReader = new FileReader();
+    if (e.target.files && e.target.files.length > 0) {
+      const files = e.target.files[0];
+      setFiles(Array.from(e.target.files));
+      if (!files.type.includes("image")) return;
+      fileReader.onload = async (e) => {
+        const imageDataUrl = e.target?.result?.toString() || "";
+        onChange(imageDataUrl); 
+      }
+      fileReader.readAsDataURL(files); 
+    }
+  }; 
+
+
+  const  onSubmit = async (values: z.infer<typeof UserValidation>)=> {
+    const blob  = values.profile_photo ; 
+
+    const imageHasChanged =  isBase64Image(blob) ;   
+    if (imageHasChanged) { 
+      const imgRes = await startUpload(file);
+      if (imgRes && imgRes[0].url) {
+        values.profile_photo = imgRes[0].url;
+      }
+    } else {
+      console.log("Image has not changed");
+    }
   }
 
   return (
@@ -61,21 +89,23 @@ export default function AccountProfile({ user, btnTitle }: Props) {
       >
         <FormField
           control={form.control}
-          name="username"
+          name="profile_photo"
           render={({ field }) => (
             <FormItem className="flex items-center gap-4">
               <FormLabel className="account-form_image-label">
-                {field.value ? (
+                {field.value  ? (
                   <Image
                     src={field.value}
-                    alt="profile photo"
-                    width={24}
-                    height={24}
+                    alt="profile_icon"
+                    width={96}
+                    height={96}
+                    priority
+                    className="rounded-full object-contain"
                   />
                 ) : (
                   <Image
-                    src='/assets/profile.svg'
-                    alt="profile photo"
+                    src="/assets/profile.svg"
+                    alt="profile_icon"
                     width={50}
                     height={50}
                     className="object-contain"
@@ -102,7 +132,7 @@ export default function AccountProfile({ user, btnTitle }: Props) {
               <FormLabel className="text-base-semibold text-light-2">
                 Name
               </FormLabel>
-              <FormControl >
+              <FormControl>
                 <Input
                   type="text"
                   className="account-form_input no-focus"
@@ -118,9 +148,9 @@ export default function AccountProfile({ user, btnTitle }: Props) {
           render={({ field }) => (
             <FormItem className="flex flex-col gap-3 w-full">
               <FormLabel className="text-base-semibold text-light-2">
-              Username
+                Username
               </FormLabel>
-              <FormControl >
+              <FormControl>
                 <Input
                   type="text"
                   className="account-form_input no-focus"
@@ -136,11 +166,11 @@ export default function AccountProfile({ user, btnTitle }: Props) {
           render={({ field }) => (
             <FormItem className="flex flex-col gap-3 w-full">
               <FormLabel className="text-base-semibold text-light-2">
-              Bio
+                Bio
               </FormLabel>
-              <FormControl >
+              <FormControl>
                 <Textarea
-                  rows = {10}
+                  rows={10}
                   className="account-form_input no-focus"
                   {...field}
                 />
@@ -148,7 +178,9 @@ export default function AccountProfile({ user, btnTitle }: Props) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="bg-primary-500">Submit</Button>
+        <Button type="submit" className="bg-primary-500">
+          Submit
+        </Button>
       </form>
     </Form>
   );
