@@ -1,6 +1,7 @@
-import AccountProfile from "@/components/shared/AccountProfile";
+import AccountProfile from "@/components/forms/AccountProfile";
 import React from "react";
 import { currentUser } from "@clerk/nextjs";
+
 export default async  function Onboarding() {
   const user = await currentUser();
   if (!user) return null; // to avoid typescript warnings

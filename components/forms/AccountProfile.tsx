@@ -6,8 +6,9 @@ import { UserValidation } from "@/lib/validations/user";
 import { Button } from "@/components/ui/button";
 import { z } from "zod";
 import Image from "next/image";
-import { useState } from "react"; 
+import { useState } from "react";
 import { useUploadThing } from "@/lib/uploadthing";
+import { usePathname, useRouter } from "next/navigation";
 
 import {
   Form,
@@ -21,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "../ui/textarea";
 import { isBase64Image } from "@/lib/utils";
+import { updateUser } from "@/lib/actions/user.actions";
 interface Props {
   user: {
     id: string;
@@ -36,6 +38,8 @@ interface Props {
 export default function AccountProfile({ user, btnTitle }: Props) {
   const [file, setFiles] = useState<File[]>([]);
   const { startUpload } = useUploadThing("media");
+  const route = useRouter();
+  const pathname = usePathname();
   const form = useForm({
     resolver: zodResolver(UserValidation),
     defaultValues: {
@@ -44,9 +48,9 @@ export default function AccountProfile({ user, btnTitle }: Props) {
       username: user?.username || "",
       bio: user?.bio || "",
     },
-  }); 
+  });
 
-  // handle image change 
+  // handle image change
   const handleImageChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     onChange: (value: string) => void
@@ -59,18 +63,18 @@ export default function AccountProfile({ user, btnTitle }: Props) {
       if (!files.type.includes("image")) return;
       fileReader.onload = async (e) => {
         const imageDataUrl = e.target?.result?.toString() || "";
-        onChange(imageDataUrl); 
-      }
-      fileReader.readAsDataURL(files); 
+        onChange(imageDataUrl);
+      };
+      fileReader.readAsDataURL(files);
     }
-  }; 
+  };
 
+  const onSubmit = async (values: z.infer<typeof UserValidation>) => {
+    const blob = values.profile_photo;
+  
 
-  const  onSubmit = async (values: z.infer<typeof UserValidation>)=> {
-    const blob  = values.profile_photo ; 
-
-    const imageHasChanged =  isBase64Image(blob) ;   
-    if (imageHasChanged) { 
+    const imageHasChanged = isBase64Image(blob);
+    if (imageHasChanged) {
       const imgRes = await startUpload(file);
       if (imgRes && imgRes[0].url) {
         values.profile_photo = imgRes[0].url;
@@ -78,7 +82,24 @@ export default function AccountProfile({ user, btnTitle }: Props) {
     } else {
       console.log("Image has not changed");
     }
-  }
+
+    await updateUser({
+      userId: user.id,
+      username: values.username,
+      name: values.name,
+      bio: values.bio,
+      image: values.profile_photo,
+      path: pathname,
+    }); 
+
+
+    if (pathname=== "/profile/edit")  { 
+      route.back() ;
+      
+    }else { 
+      route.push("/")  ;  
+    }
+  };
 
   return (
     <Form {...form}>
@@ -93,7 +114,7 @@ export default function AccountProfile({ user, btnTitle }: Props) {
           render={({ field }) => (
             <FormItem className="flex items-center gap-4">
               <FormLabel className="account-form_image-label">
-                {field.value  ? (
+                {field.value ? (
                   <Image
                     src={field.value}
                     alt="profile_icon"
