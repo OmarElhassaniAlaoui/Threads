@@ -71,8 +71,6 @@ export default function AccountProfile({ user, btnTitle }: Props) {
 
   const onSubmit = async (values: z.infer<typeof UserValidation>) => {
     const blob = values.profile_photo;
-  
-
     const imageHasChanged = isBase64Image(blob);
     if (imageHasChanged) {
       const imgRes = await startUpload(file);
@@ -91,9 +89,8 @@ export default function AccountProfile({ user, btnTitle }: Props) {
       image: values.profile_photo,
       path: pathname,
     }); 
-
-
-    if (pathname=== "/profile/edit")  { 
+ 
+    if (pathname === "/profile/edit")  { 
       route.back() ;
       
     }else { 
